@@ -1,0 +1,22 @@
+{
+  "name": "Masterflexo Pro",
+  "short_name": "Masterflexo",
+  "description": "Control de Costos y Producción Flexográfica",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0d47a1",
+  "theme_color": "#0d47a1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "logo-app.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo-app.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Masterflexo - Control Total</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d47a1">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker registrado', reg))
+        .catch(err => console.log('Error al registrar SW', err));
+    });
+  }
+</script>
+
+    <style>
+        :root { --p-color: #0d47a1; --s-color: #4a148c; --bg: #f0f2f5; --ws-color: #25d366; --ws-prod: #ff9800; --gear-gray: #bdc3c7; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 0; color: #333; }
+        .master-wrapper { max-width: 500px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        
+        .main-header { padding: 10px 15px; background: white; display: flex; justify-content: flex-start; align-items: center; }
+        .header-strip { background-color: var(--p-color); height: 45px; border-radius: 10px; margin: 5px 15px; display: flex; align-items: center; justify-content: flex-end; padding: 0 15px; }
+        #logo-preview { max-width: 140px; max-height: 55px; object-fit: contain; display: none; }
+        .settings-gear { cursor: pointer; color: var(--gear-gray); font-size: 26px; }
+
+        .nav-tabs { display: flex; background: #f8f9fa; padding: 10px; gap: 10px; border-bottom: 1px solid #eee; }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; background: #e0e0e0; color: #666; font-size: 11px; }
+        .tab-btn.active.cirel-tab { background: var(--p-color); color: white; }
+        .tab-btn.active.flexo-tab { background: var(--s-color); color: white; }
+
+        .shared-data { padding: 15px; border-bottom: 5px solid #f0f2f5; }
+        .grid-inputs { display: flex; flex-direction: column; gap: 8px; }
+        .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        label { font-weight: bold; font-size: 10px; color: #888; text-transform: uppercase; }
+        input { padding: 12px; border: 1px solid #dee2e6; border-radius: 10px; font-size: 16px; text-align: right; width: 100%; box-sizing: border-box; }
+        input:disabled { background: #f5f5f5; color: #999; border: 1px dashed #ccc; cursor: not-allowed; }
+        
+        .module { display: none; padding: 15px; }
+        .module.active { display: block; }
+
+        .res-valor { padding: 10px; border-radius: 8px; font-weight: bold; text-align: right; font-size: 13px; margin-bottom: 4px; }
+        .res-blue { background-color: #e3f2fd; color: #0d47a1; }
+        .res-green { background-color: #e8f5e9; color: #1b5e20; }
+        .res-orange { background-color: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
+
+        .res-alert-error { background-color: #ffebee !important; color: #c62828 !important; border: 2px solid #ef5350 !important; }
+        .res-alert-warning { background-color: #fff3e0 !important; color: #e65100 !important; border: 2px solid #ffb74d !important; }
+
+        .tech-icons-row { display: flex; justify-content: space-between; margin: 15px 0; gap: 15px; padding: 0 10px; }
+        .app-icon { flex: 0 0 65px; height: 65px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border: none; }
+        .app-icon span { font-size: 20px; color: white; margin-bottom: 2px; }
+        .app-icon p { font-size: 8px; margin: 0; font-weight: bold; color: white; }
+        .ic-opt { background: #4caf50; }
+        .ic-tall { background: #607d8b; }
+        .ic-vis { background: #2196f3; }
+
+        .mode-selector { display: flex; background: #eee; border-radius: 8px; margin-bottom: 12px; padding: 4px; gap: 4px; }
+        .mode-btn { flex: 1; border: none; padding: 10px; font-size: 9px; font-weight: bold; border-radius: 6px; cursor: pointer; background: #ddd; color: #777; }
+        .mode-btn.active { background: var(--p-color); color: white; }
+
+        .collapsible-content { display: none; background: #fdfdfd; border: 1px solid #eee; border-radius: 15px; padding: 15px; margin-top: 10px; }
+        .tabla-opt { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 5px;}
+        .tabla-opt td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        .mejor-fila { background-color: #c8e6c9 !important; font-weight: bold; border: 2px solid #2e7d32; }
+
+        #vis-container { padding: 45px 10px 10px 65px; display: flex; flex-direction: column; align-items: center; }
+        #area-cirel { position: relative; border: 1.5px solid #333; background: #fff; }
+        .etiqueta-v { position: absolute; background: #333; }
+        
+        .cota { position: absolute; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: var(--p-color); }
+        .cota-h { width: 100%; height: 15px; top: -30px; border-left: 1px solid var(--p-color); border-right: 1px solid var(--p-color); border-bottom: 1px solid var(--p-color); }
+        .cota-v { height: 100%; width: 15px; left: -30px; flex-direction: column; border-top: 1px solid var(--p-color); border-bottom: 1px solid var(--p-color); border-right: 1px solid var(--p-color); }
+        .cota-text-v { position: absolute; left: -55px; transform: rotate(-90deg); white-space: nowrap; width: 120px; text-align: center; }
+
+        .f-material-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .f-mat-card { background: #f9f4ff; border: 1px solid #e1bee7; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 10px; cursor: pointer; transition: 0.2s; }
+        .f-mat-card.selected { border: 2px solid var(--p-color) !important; background: var(--p-color) !important; box-shadow: 0 4px 10px rgba(13,71,161,0.2); }
+        .f-mat-card.selected span { color: white !important; }
+        .f-mat-card span { font-size: 11px; font-weight: bold; color: #777; text-align: left; line-height: 1.2; }
+
+        .total-box { padding: 15px; border-radius: 15px; text-align: right; margin-top: 15px; border: 1px solid #eee; }
+        .total-val { font-size: 24px; font-weight: bold; }
+        .btn-action { width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; }
+
+        #status-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 12px 24px; border-radius: 25px; font-size: 13px; font-weight: bold; z-index: 9999; display: none; }
+        #config-panel { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; overflow-y: auto; }
+        .config-content { background: white; width: 90%; max-width: 450px; margin: 20px auto; padding: 20px; border-radius: 20px; position: relative; }
+        
+        .conf-section-title { font-size: 11px; font-weight: bold; color: var(--p-color); margin: 15px 0 8px 0; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
+
+        .firma-box { display: none; }
+        .print-only-title { display: none; }
+
+        @media print {
+            .no-print, .nav-tabs, .tech-icons-row, .btn-action, .settings-gear, .header-strip, .mode-selector, 
+            #sec_opt, #sec_vis, #sec_historial, .f-material-grid, #config-panel, .no-print-z, #f_msg { display: none !important; }
+            .firma-box { display: flex !important; margin-top: 80px; justify-content: center; }
+            .firma-line { border-top: 1px solid #000; width: 220px; text-align: center; padding-top: 8px; font-size: 10pt; font-weight: bold; }
+            .print-only-title { display: block !important; font-size: 28pt; font-weight: bold; color: #e0e0e0 !important; text-align: center; margin: 5px 0 15px 0; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+            body { background: white; padding: 0; margin: 0; }
+            .master-wrapper { box-shadow: none; max-width: 100%; width: 100%; margin: 0; border: none; }
+            input { border: none !important; background: transparent !important; text-align: left !important; padding: 0 !important; font-size: 12pt !important; height: auto !important; color: black !important; }
+            .shared-data { border-bottom: 2px solid #333; margin-bottom: 10px; padding: 10px 0; }
+            .res-valor { background: none !important; border-bottom: 1px solid #ddd; color: #000 !important; padding: 5px !important; border-radius: 0; text-align: left !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="status-toast">Mensaje del sistema</div>
+
+<div id="capture-area" class="master-wrapper">
+    <header class="main-header"><div class="logo-container"><img id="logo-preview" src=""></div></header>
+    <div id="print-header-container" class="print-only"></div>
+    
+    <div class="header-strip no-print">
+        <div style="display:flex; gap:18px; align-items:center;">
+            <span class="settings-gear" onclick="exportarPDF()" title="Descargar PDF">📥</span>
+            <span class="settings-gear" onclick="guardarEnHistorial()" title="Guardar">💾</span>
+            <span class="settings-gear" onclick="abrirHistorial()" title="Historial">📋</span>
+            <span class="settings-gear" onclick="toggleConfig(true)">⚙</span>
+        </div>
+    </div>
+
+    <section class="shared-data">
+        <div class="grid-inputs">
+            <div><label>CLIENTE</label><input type="text" id="c_nom" placeholder="..."></div>
+            <div class="grid-row">
+                <div><label>RUC/CI</label><input type="text" id="c_ruc" placeholder="..."></div>
+                <div><label>FECHA</label><input type="text" id="fecha" readonly></div>
+            </div>
+        </div>
+    </section>
+
+    <nav class="nav-tabs no-print">
+        <button id="btn-cirel" class="tab-btn active cirel-tab" onclick="switchApp('mod_cirel')">CIREL PRO</button>
+        <button id="btn-flexo" class="tab-btn flexo-tab" onclick="switchApp('mod_flexo')">FLEXO PRO</button>
+    </nav>
+
+    <main id="mod_cirel" class="module active">
+        <div class="grid-row">
+            <div><label>Ancho mm</label><input type="number" id="cw" value="50" oninput="runCirel()"></div>
+            <div><label>Alto mm</label><input type="number" id="ch" value="30" oninput="runCirel()"></div>
+            <div><label>Gap H mm</label><input type="number" id="cgh" value="3" oninput="runCirel()"></div>
+            <div><label>Gap V mm</label><input type="number" id="cgv" value="3" oninput="runCirel()"></div>
+            <div><label>Columnas</label><input type="number" id="ccol" value="2" oninput="runCirel()"></div>
+            <div><label>Total Etiq</label><input type="number" id="ctot" value="10" oninput="runCirel()"></div>
+        </div>
+
+        <div class="mode-selector no-print" style="margin-top:15px;">
+            <button id="mode-guias" class="mode-btn active" onclick="setMasterMode('guias')">CON GUÍAS</button>
+            <button id="mode-neto" class="mode-btn" onclick="setMasterMode('neto')">BLOQUE NETO</button>
+        </div>
+
+        <div class="grid-row">
+            <div><label>Bloque Neto</label><div id="cr_bloque" class="res-valor res-blue">0x0 mm</div></div>
+            <div><label id="lbl_aux">Imp+Guías</label><div id="cr_aux" class="res-valor res-blue">0x0 mm</div></div>
+        </div>
+        <div><label>Área Cobro Final</label><div id="cr_cobro" class="res-valor res-orange">0x0 cm</div></div>
+
+        <div class="tech-icons-row no-print">
+            <button class="app-icon ic-opt" onclick="toggleSec('sec_opt')"><span>📊</span><p>OPTIMIZAR</p></button>
+            <button class="app-icon ic-tall" onclick="toggleSec('sec_z')"><span>⚙️</span><p>TALLER Z</p></button>
+            <button class="app-icon ic-vis" onclick="toggleSec('sec_vis')"><span>👁️</span><p>ESQUEMA</p></button>
+        </div>
+
+        <div id="sec_opt" class="collapsible-content no-print"><div id="cr_tabla_opt"></div></div>
+        <div id="sec_z" class="collapsible-content no-print-z">
+            <div class="grid-row">
+                <div>
+                    <label>Z Cilindro</label>
+                    <input type="number" id="z_manual" style="background:#333; color:white; text-align:center" oninput="calcZManual()">
+                    <div id="stock_display" style="font-size: 9px; color: #666; font-weight: bold; margin-top: 3px; text-align: center;">Stock: 0</div>
+                </div>
+                <div><label>Teórico</label><div id="cr_teo" class="res-valor" style="background:#eee;">0 mm</div></div>
+            </div>
+            <div style="margin-top:5px;"><label>Compensada (-1.7%)</label><div id="cr_comp" class="res-valor res-blue">0 mm</div></div>
+        </div>
+
+        <div id="sec_vis" class="collapsible-content">
+            <div id="vis-container">
+                <div id="area-cirel">
+                    <div class="cota cota-h"><span id="ctx-h" style="background:white; padding:0 3px"></span></div>
+                    <div class="cota cota-v"><span id="ctx-v" class="cota-text-v"></span></div>
+                    <div id="vis"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-row" style="margin-top:10px;">
+            <div><label>Cant. Cireles</label><input type="number" id="cn_cir" value="1" oninput="runCirel()"></div>
+            <div><label>Área Tot cm²</label><div id="cr_area" class="res-valor res-blue">0 cm²</div></div>
+        </div>
+
+        <div class="total-box">
+            <div style="font-size:12px;">SUBTOTAL: <span id="cr_sub">$ 0.00</span></div>
+            <div style="font-size:12px;"><span id="lbl_iva_cirel">IVA:</span> <span id="cr_iva">$ 0.00</span></div>
+            <div class="total-val" style="color:var(--p-color);" id="cr_total">$ 0.00</div>
+        </div>
+
+        <div class="firma-box"><div class="firma-line">Firma Autorizada</div></div>
+        <div class="no-print">
+            <button class="btn-action" style="background:var(--ws-color); color:white;" onclick="wsAction('cirel', 'cliente')">💬 WhatsApp Cliente</button>
+            <button class="btn-action" style="background:var(--ws-prod); color:white;" onclick="wsAction('cirel', 'produccion')">🏭 WhatsApp Producción</button>
+            <button class="btn-action" style="background:var(--p-color); color:white;" onclick="window.print()">🖨️ Imprimir Cirel</button>
+        </div>
+    </main>
+
+    <main id="mod_flexo" class="module">
+        <div class="grid-row">
+            <div><label>Bloque cm</label><input type="number" id="f_cmB" value="22.25" oninput="runFlexo()"></div>
+            <div><label>Etiq x Bloque</label><input type="number" id="f_etB" value="6" oninput="runFlexo()"></div>
+            <div><label>Total Pedido</label><input type="number" id="f_tot" value="5000" oninput="runFlexo()"></div>
+            <div><label>Ancho Mat cm</label><input type="number" id="f_anc" value="10" oninput="runFlexo()"></div>
+        </div>
+
+        <div class="grid-inputs" style="margin-top:15px;">
+            <div class="grid-row">
+                <div><label>Bloques</label><div id="f_res_bloques" class="res-valor res-blue">0</div></div>
+                <div><label>Lineal (cm)</label><div id="f_res_cm" class="res-valor res-blue">0</div></div>
+            </div>
+            <div class="grid-row">
+                <div><label>Metros (m)</label><div id="f_res_m" class="res-valor res-green">0</div></div>
+                <div><label>Pies (ft)</label><div id="f_res_ft" class="res-valor res-green">0</div></div>
+            </div>
+            <div><label>Superficie (cm²)</label><div id="f_res_cm2" class="res-valor res-orange">0 cm²</div></div>
+        </div>
+
+        <div class="no-print" style="margin-top: 20px; margin-bottom: 5px; border-left: 4px solid var(--s-color); padding-left: 10px;">
+            <label style="color: var(--s-color); font-size: 11px; letter-spacing: 1px; font-weight: bold;">SELECCIÓN DE MATERIAL</label>
+        </div>
+
+        <div class="f-material-grid">
+            <div class="f-mat-card selected" id="card_v1" onclick="selMat('v1')"><span>PoliP Blanco</span></div>
+            <div class="f-mat-card" id="card_v2" onclick="selMat('v2')"><span>PoliP Trans</span></div>
+            <div class="f-mat-card" id="card_v3" onclick="selMat('v3')"><span>PoliP Metal</span></div>
+            <div class="f-mat-card" id="card_v4" onclick="selMat('v4')"><span>Propalcote B</span></div>
+            <div class="f-mat-card" id="card_v5" onclick="selMat('v5')"><span>Propalcote M</span></div>
+            <div class="f-mat-card" id="card_vM" onclick="selMat('vM')"><span>Manual</span></div>
+        </div>
+
+        <div style="margin-top:15px;" class="no-print">
+            <label>Extra Adicional $</label><input type="number" id="f_extra" value="0" oninput="runFlexo()">
+        </div>
+
+        <div class="total-box">
+            <div id="f_msg" style="font-size:11px; font-weight:bold; margin-bottom:5px;"></div>
+            <div id="f_unit_box" style="font-size:11px; color:#444; margin-bottom:8px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; text-align: right;">
+                <div>Unit. (Con IVA): <span id="f_unit_con" style="font-weight:bold; color:#0d47a1;">$ 0.0000</span></div>
+            </div>
+            <div style="font-size:13px;">SUBTOTAL: <span id="f_sub">$ 0.00</span></div>
+            <div style="font-size:13px;"><span id="lbl_iva_flexo">IVA:</span> <span id="f_iva">$ 0.00</span></div>
+            <div class="total-val" style="color:#1b5e20; font-size:28px;" id="f_total">$ 0.00</div>
+        </div>
+
+        <div class="firma-box"><div class="firma-line">Firma Autorizada</div></div>
+        <div class="no-print">
+            <button class="btn-action" style="background:var(--ws-color); color:white;" onclick="wsAction('flexo', 'cliente')">💬 WhatsApp Cliente</button>
+            <button class="btn-action" style="background:var(--ws-prod); color:white;" onclick="wsAction('flexo', 'produccion')">🏭 WhatsApp Producción</button>
+            <button class="btn-action" style="background:var(--s-color); color:white;" onclick="window.print()">🖨️ Imprimir Flexo</button>
+        </div>
+    </main>
+
+    <div id="sec_historial" class="collapsible-content no-print" style="max-width: 500px; margin: 10px auto; background: white; border: 1px solid #ddd;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--p-color); padding-bottom:5px; margin-bottom:10px;">
+            <h3 style="font-size:12px; margin:0; color:var(--p-color);">HISTORIAL DE TRABAJOS</h3>
+            <button onclick="borrarHistorial()" style="background:none; border:none; color:red; font-size:10px; cursor:pointer;">🗑️ Borrar</button>
+        </div>
+        <div id="lista_historial" style="max-height:300px; overflow-y:auto;"></div>
+    </div>
+
+    <div id="config-panel" class="no-print">
+        <div class="config-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <strong>AJUSTES MASTER</strong>
+                <button onclick="toggleConfig(false)" style="border:none; background:none; font-size:20px;">✕</button>
+            </div>
+            <div class="grid-inputs" id="config_scroll_area" style="max-height: 70vh; overflow-y: auto; padding-right: 5px;">
+                <div style="background:#f8f9fa; padding:10px; border-radius:10px; margin-bottom:10px;">
+                    <label>1. LOGO EMPRESA</label><input type="file" id="logo_input" accept="image/*" onchange="subirLogo(this)">
+                </div>
+                <div style="background:#f8f9fa; padding:10px; border-radius:10px; margin-bottom:10px;">
+                    <label>2. SEGURIDAD</label><button onclick="checkPass()" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ccc;">🔓 Desbloquear Edición</button>
+                </div>
+                
+                <div style="background:#f8f9fa; padding:10px; border-radius:10px; margin-bottom:10px;">
+                    <div class="conf-section-title">3. IVA Y CIREL</div>
+                    <div class="grid-row">
+                        <div><label>IVA %</label><input type="number" id="conf_iva" disabled></div>
+                        <div><label>Cirel cm² $</label><input type="number" id="conf_cirel" disabled></div>
+                    </div>
+                </div>
+
+                <div style="background:#f8f9fa; padding:10px; border-radius:10px; margin-bottom:10px;">
+                    <div class="conf-section-title">4. MATERIALES FLEXO ($ por cm²)</div>
+                    <div class="grid-row">
+                        <div><label>PoliP Blanco</label><input type="number" id="conf_v1" disabled></div>
+                        <div><label>PoliP Trans</label><input type="number" id="conf_v2" disabled></div>
+                    </div>
+                    <div class="grid-row">
+                        <div><label>PoliP Metal</label><input type="number" id="conf_v3" disabled></div>
+                        <div><label>Prop B</label><input type="number" id="conf_v4" disabled></div>
+                    </div>
+                    <div class="grid-row">
+                        <div><label>Prop M</label><input type="number" id="conf_v5" disabled></div>
+                        <div><label>Manual</label><input type="number" id="conf_vM" disabled></div>
+                    </div>
+                </div>
+
+                <div style="background:#f8f9fa; padding:10px; border-radius:10px; margin-bottom:10px;">
+                    <div class="conf-section-title">5. DESCUENTOS Y RECARGOS</div>
+                    <div class="grid-row">
+                        <div><label>Hasta Q1</label><input type="number" id="conf_q1" disabled></div>
+                        <div><label>% F1</label><input type="number" id="conf_f1" disabled></div>
+                    </div>
+                    <div class="grid-row">
+                        <div><label>Hasta Q2</label><input type="number" id="conf_q2" disabled></div>
+                        <div><label>% F2</label><input type="number" id="conf_f2" disabled></div>
+                    </div>
+                    <div class="grid-row">
+                        <div><label>Hasta Q3</label><input type="number" id="conf_q3" disabled></div>
+                        <div><label>% F3</label><input type="number" id="conf_f3" disabled></div>
+                    </div>
+                    <div class="grid-row">
+                        <div><label>Desde Q4</label><input type="number" id="conf_q4" disabled></div>
+                        <div><label>% F4</label><input type="number" id="conf_f4" disabled></div>
+                    </div>
+                    <div class="grid-row">
+                        <div><label>Desde Q5</label><input type="number" id="conf_q5" disabled></div>
+                        <div><label>% F5</label><input type="number" id="conf_f5" disabled></div>
+                    </div>
+                    <div class="grid-row">
+                        <div><label>Desde Q6</label><input type="number" id="conf_q6" disabled></div>
+                        <div><label>% F6</label><input type="number" id="conf_f6" disabled></div>
+                    </div>
+                </div>
+
+                <div style="background:#e3f2fd; padding:10px; border-radius:10px; margin-top:10px; border:1px solid #2196f3;">
+                    <label style="color:#0d47a1;">6. GESTIÓN DE CILINDROS</label>
+                    <button onclick="abrirGestorZ()" style="width:100%; padding:10px; margin-top:5px; border-radius:10px; background:#2196f3; color:white; border:none; font-weight:bold; cursor:pointer;">⚙️ Ajustar Stock Individual</button>
+                    <button onclick="generarReporteZ()" style="width:100%; padding:10px; margin-top:8px; border-radius:10px; background:#607d8b; color:white; border:none; font-weight:bold; cursor:pointer;">📋 Descargar Inventario PDF</button>
+                </div>
+            </div>
+            <button class="btn-action" style="background:var(--p-color); color:white; margin-top:15px;" onclick="saveAll()">GUARDAR TODO</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const PASO = 3.175;
+    const CONFIG_IDS = ['iva', 'cirel', 'v1', 'v2', 'v3', 'v4', 'v5', 'vM', 'q1', 'f1', 'q2', 'f2', 'q3', 'f3', 'q4', 'f4', 'q5', 'f5', 'q6', 'f6'];
+    const CONFIG_DEFAULTS = [15, 0.06, 0.00015783, 0.00015783, 0.00023805, 0.0001669, 0.0002169, 0.000439, 3000, 25, 5000, 15, 10000, 0, 25000, 5, 50000, 10, 100000, 15];
+    let masterMode = 'guias', currentMat = 'v1';
+
+    window.onload = () => {
+        document.getElementById('fecha').value = new Date().toLocaleDateString();
+        loadAll(); 
+        switchApp('mod_cirel');
+    };
+
+    function switchApp(id) {
+        document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById(id === 'mod_cirel' ? 'btn-cirel' : 'btn-flexo').classList.add('active');
+        const printContainer = document.getElementById('print-header-container');
+        if(id === 'mod_cirel') {
+            printContainer.innerHTML = '<div class="print-only-title">PROFORMA CIREL</div>';
+            runCirel();
+        } else {
+            printContainer.innerHTML = '<div class="print-only-title">PROFORMA ETIQUETAS</div>';
+            runFlexo();
+        }
+    }
+
+    function toggleSec(id) {
+        const sec = document.getElementById(id);
+        const vis = sec.style.display === 'block';
+        document.querySelectorAll('.collapsible-content').forEach(s => { if(s.id !== 'sec_historial') s.style.display = 'none'; });
+        sec.style.display = vis ? 'none' : 'block';
+        if (id === 'sec_opt' && !vis) generarTablaOpt();
+    }
+
+    function generarTablaOpt() {
+        const w = parseFloat(document.getElementById('cw').value)||0, h = parseFloat(document.getElementById('ch').value)||0,
+              gh = parseFloat(document.getElementById('cgh').value)||0, gv = parseFloat(document.getElementById('cgv').value)||0,
+              col = parseFloat(document.getElementById('ccol').value)||1, tot = parseFloat(document.getElementById('ctot').value)||1,
+              ncir = parseFloat(document.getElementById('cn_cir').value)||1;
+        const costo = parseFloat(localStorage.getItem('mf_cirel')) || 0.06, ivaP = parseFloat(localStorage.getItem('mf_iva')) || 15;
+        const fV = Math.ceil(tot/col), bWV = (col * w) + ((col-1)*gh), bHV = (fV * h) + ((fV-1)*gv);
+        const mWV = masterMode === 'guias' ? bWV + 9 : bWV, mHV = masterMode === 'guias' ? bHV + 9 : bHV + 3;
+        const totalV = ((mWV/10)+2) * ((mHV/10)+2) * ncir * costo * (1 + ivaP/100);
+        const bWH = (col * h) + ((col-1)*gh), bHH = (fV * w) + ((fV-1)*gv);
+        const mWH = masterMode === 'guias' ? bWH + 9 : bWH, mHH = masterMode === 'guias' ? bHH + 9 : bHH + 3;
+        const totalH = ((mWH/10)+2) * ((mHH/10)+2) * ncir * costo * (1 + ivaP/100);
+        const mejorV = totalV <= totalH;
+        document.getElementById('cr_tabla_opt').innerHTML = `<table class="tabla-opt"><tr style="background:#eee"><td>Orientación</td><td>Cobro (cm)</td><td>Total (IVA)</td></tr><tr class="${mejorV ? 'mejor-fila' : ''}"><td>Vertical</td><td>${((mWV/10)+2).toFixed(1)}x${((mHV/10)+2).toFixed(1)}</td><td>$${totalV.toFixed(2)}</td></tr><tr class="${!mejorV ? 'mejor-fila' : ''}"><td>Horizontal</td><td>${((mWH/10)+2).toFixed(1)}x${((mHH/10)+2).toFixed(1)}</td><td>$${totalH.toFixed(2)}</td></tr></table>`;
+    }
+
+    function runCirel() {
+        const w = parseFloat(document.getElementById('cw').value)||0, h = parseFloat(document.getElementById('ch').value)||0,
+              gh = parseFloat(document.getElementById('cgh').value)||0, gv = parseFloat(document.getElementById('cgv').value)||0,
+              col = parseFloat(document.getElementById('ccol').value)||1, tot = parseFloat(document.getElementById('ctot').value)||0,
+              ncir = parseFloat(document.getElementById('cn_cir').value)||1;
+        const costo = parseFloat(localStorage.getItem('mf_cirel')) || 0.06, ivaP = parseFloat(localStorage.getItem('mf_iva')) || 15;
+        const filas = Math.ceil(tot/col), bW = (col * w) + ((col-1)*gh), bH = (filas * h) + ((filas-1)*gv);
+        let mW = masterMode === 'guias' ? bW + 9 : bW, mH = masterMode === 'guias' ? bH + 9 : bH + 3;
+        let cW = (mW/10)+2, cH = (mH/10)+2, sub = (cW * cH) * ncir * costo, iva = sub * (ivaP/100);
+        document.getElementById('cr_bloque').innerText = bW.toFixed(1) + "x" + bH.toFixed(1) + " mm";
+        document.getElementById('cr_aux').innerText = mW.toFixed(1) + "x" + mH.toFixed(1) + " mm";
+        document.getElementById('cr_cobro').innerText = cW.toFixed(2) + "x" + cH.toFixed(2) + " cm";
+        document.getElementById('cr_area').innerText = (cW * cH * ncir).toFixed(2) + " cm²";
+        document.getElementById('cr_sub').innerText = "$ " + sub.toFixed(2);
+        document.getElementById('cr_iva').innerText = "$ " + iva.toFixed(2);
+        document.getElementById('cr_total').innerText = "$ " + (sub + iva).toFixed(2);
+        let zs = 0; for(let z=30; z<=120; z++) { if((z * PASO) >= (mH - 0.1)) { zs = z; break; } }
+        document.getElementById('z_manual').value = zs; 
+        calcZManual();
+        const areaE = document.getElementById('area-cirel'); areaE.style.width = mW + "px"; areaE.style.height = mH + "px";
+        document.getElementById('ctx-h').innerText = (mW/10).toFixed(2) + " cm";
+        document.getElementById('ctx-v').innerText = (mH/10).toFixed(2) + " cm";
+        const vis = document.getElementById('vis'); vis.innerHTML = '';
+        const oX = (masterMode === 'guias' ? 4.5 : 0), oY = (masterMode === 'guias' ? 4.5 : 0);
+        for(let i=0; i<tot; i++){
+            const r = Math.floor(i/col), c = i%col;
+            const d = document.createElement('div'); d.className = 'etiqueta-v'; d.style.width = w+"px"; d.style.height = h+"px";
+            d.style.left = (oX + (c*(w+gh))) + "px"; d.style.top = (oY + (r*(h+gv))) + "px"; vis.appendChild(d);
+        }
+    }
+
+    function runFlexo() {
+        const cmB = parseFloat(document.getElementById('f_cmB').value)||0, etB = parseFloat(document.getElementById('f_etB').value)||0,
+              totE = parseFloat(document.getElementById('f_tot').value)||0, anc = parseFloat(document.getElementById('f_anc').value)||0,
+              ext = parseFloat(document.getElementById('f_extra').value)||0;
+        const ivaP = parseFloat(localStorage.getItem('mf_iva'))||15, cB = parseFloat(localStorage.getItem('mf_' + currentMat))||0;
+        const q1 = parseFloat(localStorage.getItem('mf_q1'))||3000, f1 = (parseFloat(localStorage.getItem('mf_f1'))||25)/100;
+        const bloques = etB > 0 ? totE/etB : 0, linCm = bloques * cmB, supCm2 = linCm * anc;
+        let factor = (totE > 0 && totE <= q1) ? 1 + f1 : 1.0;
+        const sub = (supCm2 * cB * factor) + ext, total = sub * (1 + ivaP/100);
+        document.getElementById('f_res_bloques').innerText = bloques.toFixed(2);
+        document.getElementById('f_res_cm').innerText = linCm.toFixed(1) + " cm";
+        document.getElementById('f_res_m').innerText = (linCm/100).toFixed(2) + " m";
+        document.getElementById('f_res_ft').innerText = (linCm/30.48).toFixed(2) + " ft";
+        document.getElementById('f_res_cm2').innerText = supCm2.toFixed(2) + " cm²";
+        document.getElementById('f_unit_con').innerText = "$ " + (totE > 0 ? (total/totE).toFixed(4) : "0.0000");
+        document.getElementById('f_sub').innerText = "$ " + sub.toFixed(2);
+        document.getElementById('f_iva').innerText = "$ " + (total-sub).toFixed(2);
+        document.getElementById('f_total').innerText = "$ " + total.toFixed(2);
+    }
+
+    function wsAction(tipo, destino) {
+        const cliente = document.getElementById('c_nom').value || "Cliente";
+        let msg = "";
+        if (tipo === 'cirel') {
+            if (destino === 'cliente') {
+                msg = `*PROFORMA CIREL*%0ACliente: ${cliente}%0ACant. Cireles: ${document.getElementById('cn_cir').value}%0AÁrea Total: ${document.getElementById('cr_area').innerText}%0ASubtotal: ${document.getElementById('cr_sub').innerText}%0AIVA: ${document.getElementById('cr_iva').innerText}%0A*TOTAL: ${document.getElementById('cr_total').innerText}*`;
+            } else {
+                msg = `*PRODUCCIÓN CIREL*%0ACliente: ${cliente}%0AMedida: ${document.getElementById('cw').value}x${document.getElementById('ch').value}mm%0ACilindro: Z${document.getElementById('z_manual').value}%0ADesarrollo: ${document.getElementById('cr_comp').innerText}%0ACant: ${document.getElementById('cn_cir').value}`;
+            }
+        } else {
+            if (destino === 'cliente') {
+                msg = `*PROFORMA ETIQUETAS*%0ACliente: ${cliente}%0ALineal: ${document.getElementById('f_res_m').innerText}%0AAncho: ${document.getElementById('f_anc').value}cm%0AÁrea: ${document.getElementById('f_res_cm2').innerText}%0ASubtotal: ${document.getElementById('f_sub').innerText}%0AIVA: ${document.getElementById('f_iva').innerText}%0A*TOTAL: ${document.getElementById('f_total').innerText}*`;
+            } else {
+                msg = `*PRODUCCIÓN FLEXO*%0ACliente: ${cliente}%0ALineal: ${document.getElementById('f_res_m').innerText} (${document.getElementById('f_res_ft').innerText})%0AAncho: ${document.getElementById('f_anc').value}cm%0AMaterial: ${currentMat.toUpperCase()}%0ABloque: ${document.getElementById('f_cmB').value}cm`;
+            }
+        }
+        window.open("https://wa.me/?text=" + msg);
+    }
+
+    function calcZManual() {
+        const z = parseFloat(document.getElementById('z_manual').value) || 0;
+        const auxH = parseFloat(document.getElementById('cr_aux').innerText.split('x')[1]) || 0;
+        const nCir = parseInt(document.getElementById('cn_cir').value) || 1;
+        const teo = z * PASO, comp = teo * 0.983;
+        const tEl = document.getElementById('cr_teo'), cEl = document.getElementById('cr_comp'), sEl = document.getElementById('stock_display');
+        tEl.innerText = teo.toFixed(2) + " mm"; cEl.innerText = comp.toFixed(2) + " mm";
+        tEl.classList.remove('res-alert-error', 'res-alert-warning');
+        cEl.classList.remove('res-alert-error', 'res-alert-warning');
+        let inv = JSON.parse(localStorage.getItem('mf_inventario_z') || '{}'), stock = parseInt(inv[z.toString()]) || 0;
+        sEl.innerText = "Stock: " + stock;
+        sEl.style.color = (stock < nCir) ? "#e65100" : "#2e7d32";
+        if (z > 0) {
+            if (teo < (auxH - 0.5)) { tEl.classList.add('res-alert-error'); cEl.classList.add('res-alert-error'); }
+            else if (stock < nCir) { tEl.classList.add('res-alert-warning'); cEl.classList.add('res-alert-warning'); }
+        }
+    }
+
+    function guardarEnHistorial() {
+        const cli = document.getElementById('c_nom').value; if (!cli) { showToast("⚠️ Cliente requerido"); return; }
+        const esC = document.getElementById('mod_cirel').classList.contains('active');
+        const data = { id: Date.now(), cliente: cli, fecha: new Date().toLocaleString(), tipo: esC?'CIREL':'FLEXO', total: esC?document.getElementById('cr_total').innerText:document.getElementById('f_total').innerText, datos: esC?{w:document.getElementById('cw').value,h:document.getElementById('ch').value,gh:document.getElementById('cgh').value,gv:document.getElementById('cgv').value,col:document.getElementById('ccol').value,tot:document.getElementById('ctot').value,ncir:document.getElementById('cn_cir').value,modo:masterMode}:{cmB:document.getElementById('f_cmB').value,etB:document.getElementById('f_etB').value,tot:document.getElementById('f_tot').value,anc:document.getElementById('f_anc').value,mat:currentMat,extra:document.getElementById('f_extra').value}};
+        let h = JSON.parse(localStorage.getItem('mf_historial') || '[]'); h.unshift(data);
+        localStorage.setItem('mf_historial', JSON.stringify(h)); showToast("💾 Guardado");
+    }
+
+    function abrirHistorial() {
+        const sec = document.getElementById('sec_historial'), list = document.getElementById('lista_historial');
+        const vis = sec.style.display === 'block'; sec.style.display = vis ? 'none' : 'block';
+        if(!vis) { 
+            let h = JSON.parse(localStorage.getItem('mf_historial') || '[]'); 
+            list.innerHTML = h.map(i => `<div onclick="cargarTrabajo(${i.id})" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;"><strong>${i.cliente}</strong> (${i.tipo}) - ${i.total}</div>`).join('');
+            sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function cargarTrabajo(id) {
+        let h = JSON.parse(localStorage.getItem('mf_historial') || '[]'); const i = h.find(x => x.id === id);
+        if(!i || !confirm(`¿Cargar ${i.cliente}?`)) return;
+        document.getElementById('c_nom').value = i.cliente;
+        if(i.tipo === 'CIREL') { switchApp('mod_cirel'); document.getElementById('cw').value=i.datos.w; document.getElementById('ch').value=i.datos.h; setMasterMode(i.datos.modo); }
+        else { switchApp('mod_flexo'); document.getElementById('f_cmB').value=i.datos.cmB; document.getElementById('f_tot').value=i.datos.tot; selMat(i.datos.mat); }
+        document.getElementById('sec_historial').style.display = 'none';
+    }
+
+    function toggleConfig(s) { 
+        if(!s) {
+            document.querySelectorAll('#config-panel input').forEach(i => i.disabled = true);
+            document.getElementById('config_scroll_area').scrollTop = 0;
+        }
+        document.getElementById('config-panel').style.display = s ? 'block' : 'none'; 
+    }
+
+    function checkPass() { if(prompt("PIN:") === "1234") document.querySelectorAll('#config-panel input').forEach(i => i.disabled = false); }
+    function setMasterMode(m) { masterMode = m; document.getElementById('mode-guias').className = m === 'guias' ? 'mode-btn active' : 'mode-btn'; document.getElementById('mode-neto').className = m === 'neto' ? 'mode-btn active' : 'mode-btn'; runCirel(); }
+    function selMat(id) { currentMat = id; document.querySelectorAll('.f-mat-card').forEach(c => c.classList.remove('selected')); document.getElementById('card_' + id).classList.add('selected'); runFlexo(); }
+    
+    function saveAll() { 
+        CONFIG_IDS.forEach(id => { const el = document.getElementById('conf_' + id); if(el) localStorage.setItem('mf_' + id, el.value); }); 
+        runCirel(); runFlexo(); showToast("✅ Ajustes Guardados"); toggleConfig(false); 
+    }
+
+    function loadAll() { CONFIG_IDS.forEach((id, i) => { const v = localStorage.getItem('mf_' + id); const el = document.getElementById('conf_' + id); if(el) el.value = (v !== null) ? v : CONFIG_DEFAULTS[i]; }); const l = localStorage.getItem('mf_logo'); if(l) { document.getElementById('logo-preview').src = l; document.getElementById('logo-preview').style.display='block'; } }
+    function showToast(m) { const t = document.getElementById('status-toast'); t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2500); }
+    
+    function exportarPDF() {
+        const cliente = document.getElementById('c_nom').value || "Proforma";
+        showToast("📥 Generando PDF...");
+        const opt = { margin: 10, filename: `Masterflexo_${cliente}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+        html2pdf().set(opt).from(document.getElementById('capture-area')).save().then(() => { showToast("✅ PDF Descargado"); });
+    }
+
+    function subirLogo(i) { if(i.files && i.files[0]) { const reader = new FileReader(); reader.onload = (e) => { localStorage.setItem('mf_logo', e.target.result); document.getElementById('logo-preview').src = e.target.result; document.getElementById('logo-preview').style.display='block'; }; reader.readAsDataURL(i.files[0]); } }
+    
+    function abrirGestorZ() { 
+        let zS = prompt("Z (30-120):"); if(!zS) return; 
+        let inv = JSON.parse(localStorage.getItem('mf_inventario_z') || '{}'); 
+        let nS = prompt(`Stock Z${zS}:`, inv[zS]||0); if(nS===null) return; 
+        inv[zS] = parseInt(nS); localStorage.setItem('mf_inventario_z', JSON.stringify(inv)); 
+        calcZManual(); showToast("✅ Stock Actualizado");
+    }
+
+    function generarReporteZ() {
+        const inv = JSON.parse(localStorage.getItem('mf_inventario_z') || '{}');
+        const claves = Object.keys(inv).sort((a, b) => parseInt(a) - parseInt(b));
+        if (claves.filter(k => inv[k] > 0).length === 0) { showToast("⚠️ Inventario vacío"); return; }
+        
+        showToast("📥 Generando Reporte...");
+        
+        // Contenedor temporal oculto para el PDF
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.padding = '40px';
+        pdfContainer.style.background = '#fff';
+        pdfContainer.style.fontFamily = 'Arial, sans-serif';
+
+        let tableRows = '';
+        claves.forEach(z => {
+            if (inv[z] > 0) {
+                const teo = (parseFloat(z) * 3.175).toFixed(2);
+                const comp = (teo * 0.983).toFixed(2);
+                tableRows += `
+                    <tr style="text-align:center;">
+                        <td style="border:1px solid #ddd; padding:10px;">Z ${z}</td>
+                        <td style="border:1px solid #ddd; padding:10px; font-weight:bold;">${inv[z]} unid.</td>
+                        <td style="border:1px solid #ddd; padding:10px;">${teo} mm</td>
+                        <td style="border:1px solid #ddd; padding:10px; color:#0d47a1;">${comp} mm</td>
+                    </tr>`;
+            }
+        });
+
+        pdfContainer.innerHTML = `
+            <div style="text-align:center; border-bottom:2px solid #0d47a1; padding-bottom:10px; margin-bottom:20px;">
+                <h1 style="color:#0d47a1; margin:0;">MASTERFLEXO</h1>
+                <h2 style="color:#333; margin:5px 0;">INVENTARIO TÉCNICO DE CILINDROS (Z)</h2>
+                <p style="margin:0; font-size:12px; color:#666;">Generado el: ${new Date().toLocaleString()}</p>
+            </div>
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#0d47a1; color:white;">
+                        <th style="padding:12px; border:1px solid #0d47a1;">Cilindro (Z)</th>
+                        <th style="padding:12px; border:1px solid #0d47a1;">Stock Actual</th>
+                        <th style="padding:12px; border:1px solid #0d47a1;">Desarrollo</th>
+                        <th style="padding:12px; border:1px solid #0d47a1;">Compensado</th>
+                    </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+            <div style="margin-top:50px; display:flex; justify-content:space-between;">
+                <div style="border-top:1px solid #000; width:200px; text-align:center; padding-top:5px;">Firma de Bodega</div>
+                <div style="border-top:1px solid #000; width:200px; text-align:center; padding-top:5px;">Control de Calidad</div>
+            </div>
+        `;
+
+        const optZ = { 
+            margin: 15, 
+            filename: 'Inventario_Z_Masterflexo.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+        };
+
+        html2pdf().set(optZ).from(pdfContainer).save().then(() => {
+            showToast("✅ Reporte Descargado");
+        });
+    }
+    
+    function borrarHistorial() { if(confirm("¿Borrar?")) { localStorage.removeItem('mf_historial'); abrirHistorial(); } }
+</script>
+</body>
+</html>
