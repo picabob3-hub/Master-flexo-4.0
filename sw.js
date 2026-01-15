@@ -1,4 +1,4 @@
-const CACHE_NAME = 'masterflexo-v1';
+const CACHE_NAME = 'masterflexo-v2';
 const assets = [
   './',
   './index.html',
@@ -22,3 +22,4 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
